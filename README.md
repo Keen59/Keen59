@@ -11,7 +11,7 @@ Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game d
 
 <img align="left" witdh="100%" src="https://github-readme-stats.vercel.app/api?username=Keen59&theme=tokyonight&hide_border=false&include_all_commits=true&count_private=true"><img/>
 <img align="right" witdh="50px" src="https://github-readme-streak-stats.herokuapp.com/?user=Keen59&theme=tokyonight&hide_border=false"><img/>
-<br/>
+<br><br/>
  <center> <img align="center" witdh="50px" src="https://github-readme-stats.vercel.app/api/top-langs/?username=Keen59&theme=tokyonight&hide_border=false&include_all_commits=true&count_private=true&layout=compact"><img/></center>
 
 
