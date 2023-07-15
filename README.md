@@ -17,7 +17,7 @@ Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game d
 
 <img align="left" alt="Unity3D" width="60px" style="padding-right:10px;" src="https://cdn-icons-png.flaticon.com/512/5969/5969346.png" />
 <img align="left" alt="Mirror" width="60px" style="padding-right:10px;" src="https://assetstorev1-prd-cdn.unity3d.com/key-image/7dd567c9-3a0c-4f4f-b0e2-ce038d1d65ec.png" />
-<img align="left" alt="Photon Pun" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photon/photon-original.svg" />
+<img align="left" alt="Photon Pun" width="60px" style="padding-right:10px;" src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSx8DvB3DqoLMGCJCrcQSZGiH6Lu3LiSnTQhQ&usqp=CAU" />
 <img align="left" alt="MongoDB" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" />
 <img align="left" alt="SQL" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sql/sql-original.svg" />
 <img align="left" alt="MySQL" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" />
