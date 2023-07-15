@@ -12,11 +12,6 @@ Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game d
 ![](https://github-readme-streak-stats.herokuapp.com/?user=Keen59&theme=tokyonight&hide_border=false)<br/>
 ![](https://github-readme-stats.vercel.app/api/top-langs/?username=Keen59&theme=tokyonight&hide_border=false&include_all_commits=true&count_private=true&layout=compact)
 
-## 🏆 GitHub Trophies
-![](https://github-profile-trophy.vercel.app/?username=Keen59&theme=onestar&no-frame=false&no-bg=false&margin-w=4)
-
-### ✍️ Random Dev Quote
-![](https://quotes-github-readme.vercel.app/api?type=vetical&theme=dark)
 
 ### 🔝 Top Contributed Repo
 ![](https://github-contributor-stats.vercel.app/api?username=Keen59&limit=5&theme=onestar&combine_all_yearly_contributions=true)
