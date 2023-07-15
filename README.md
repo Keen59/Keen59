@@ -17,6 +17,5 @@ Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game d
 
 
 ### 🔝 Top Contributed Repo
-![](https://github-contributor-stats.vercel.app/api?username=Keen59&limit=5&theme=onestar&combine_all_yearly_contributions=true)
-
+![](https://github-contributor-stats.vercel.app/api?username=Keen59&limit=5&theme=tokyonight&combine_all_yearly_contributions=true)
 
