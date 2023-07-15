@@ -15,7 +15,7 @@ Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game d
 
 ###<h2> 🧰 Languages and Tools<h2/>
 
-<img align="left" alt="Unity3D" width="60px" style="padding-right:10px;" src="https://www.citypng.com/public/uploads/preview/unity-white-logo-icon-png-11663347637u87rvlltwq.png" />
+<img align="left" alt="Unity3D" width="60px" style="padding-right:10px;" src="https://cdn-icons-png.flaticon.com/512/5969/5969346.png" />
 <img align="left" alt="Mirror" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mirror/mirror-original.svg" />
 <img align="left" alt="Photon Pun" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/photon/photon-original.svg" />
 <img align="left" alt="MongoDB" width="60px" style="padding-right:10px;" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg" />
