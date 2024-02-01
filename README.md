@@ -1,5 +1,5 @@
 # 💫 About Me:
-Experienced game developer since 2018, skilled in OOP, Unity (2D/3D), and game design patterns. Proficient in network/server systems and passionate about developing multiplayer games. Adaptable, self-motivated, and committed to delivering high-quality work. Ethical, sincere, and reliable.
+Experienced Game Developer since 2018 who can adapt to every game instantly. Skilled in OOP and Unity (2D/3D), knowledgeable in Game Design Patterns and experienced with databases. Passionate about developing multiplayer games. A self-motivated individual who takes pride in being a sincere, honest and ethical employee.
 
 
 ## 🌐 Socials:
