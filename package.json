@@ -1,0 +1,17 @@
+{
+  "name": "instagram-istek-geri-cek",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js --open",
+    "test": "node scripts/test-parse.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "express": "^4.21.2",
+    "multer": "^2.4.0",
+    "node-html-parser": "^7.0.1",
+    "playwright": "^1.56.1"
+  }
+}
