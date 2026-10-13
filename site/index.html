@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f6f8" />
+    <title>İstekleri geri çek</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="mast">
+        <p class="eyebrow">Keen59</p>
+        <h1>Gönderdiğin takip istekleri</h1>
+        <p class="lede">
+          Instagram’dan indirdiğin dosyada profiller tıklanamaz. Dosyayı buraya bırak; her ad
+          gerçek profil bağlantısına dönüşür. Seçtiklerini tek tek açabilirsin.
+        </p>
+      </header>
+
+      <section class="layout">
+        <div class="stack">
+          <section class="card">
+            <h2>1. Dosyayı yükle</h2>
+            <p class="quiet">
+              Ayarlar → Hesap Merkezi → Bilgilerini dışa aktar → Bağlantılar →
+              <strong>pending follow requests</strong>. HTML, JSON veya bunların olduğu zip olur.
+              Dosya tarayıcıdan çıkmaz.
+            </p>
+            <label class="drop" id="drop">
+              <input id="file" type="file" accept=".html,.htm,.json,.zip" />
+              <span id="drop-label">Dosyayı buraya bırak veya seç</span>
+            </label>
+            <p id="source" class="quiet"></p>
+            <div id="warnings"></div>
+          </section>
+
+          <section class="card">
+            <h2>2. Profilleri aç</h2>
+            <p class="quiet">
+              Bu sayfa Instagram hesabına girmez. Seçili listedeki sıradaki profili yeni sekmede
+              açar. İsteği orada, “İstek gönderildi” butonundan geri çekersin.
+            </p>
+            <div class="row actions">
+              <button id="open-next" type="button">Sıradaki profili aç</button>
+            </div>
+          </section>
+
+          <section class="card log-card">
+            <h2>Kayıt</h2>
+            <ol id="log"></ol>
+          </section>
+        </div>
+
+        <section class="card list-card">
+          <div class="list-head">
+            <h2>Profiller</h2>
+            <p id="counts" class="quiet"></p>
+          </div>
+          <div class="row toolbar">
+            <button id="select-all" type="button" class="secondary">Tümünü seç</button>
+            <button id="select-none" type="button" class="secondary">Seçimi kaldır</button>
+            <input id="search" type="search" placeholder="Kullanıcı ara" enterkeyhint="search" />
+          </div>
+          <div class="row pick-row">
+            <label>
+              Filtre
+              <select id="pick-side">
+                <option value="first">İlk</option>
+                <option value="last">Son</option>
+              </select>
+            </label>
+            <label>
+              Adet
+              <input id="pick-count" type="number" min="1" value="30" />
+            </label>
+            <button id="pick-apply" type="button" class="secondary">Seç</button>
+          </div>
+          <div id="list" class="list"></div>
+        </section>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

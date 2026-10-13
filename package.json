@@ -5,13 +5,18 @@
   "type": "module",
   "scripts": {
     "start": "node server.js --open",
-    "test": "node scripts/test-parse.js"
+    "test": "node scripts/test-parse.js",
+    "build:site": "node scripts/build-site.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "express": "^4.21.2",
+    "fflate": "^0.8.3",
     "multer": "^2.4.0",
     "node-html-parser": "^7.0.1",
     "playwright": "^1.56.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }
