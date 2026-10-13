@@ -13,6 +13,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 const dataDir = path.join(rootDir, "data");
 const profileDir = path.join(dataDir, "browser-profile");
 const statePath = path.join(dataDir, "state.json");
+const withdrawnPath = path.join(dataDir, "withdrawn.json");
 const shotPath = path.join(dataDir, "last-screen.png");
 const port = 3847;
 
@@ -22,6 +23,7 @@ const upload = multer({
   limits: { fileSize: 80 * 1024 * 1024 },
 });
 
+let savedWithdrawn = new Set();
 let state = {
   sourceName: "",
   warnings: [],
@@ -63,6 +65,44 @@ function emit(event, data) {
 async function saveState() {
   await fs.mkdir(dataDir, { recursive: true });
   await fs.writeFile(statePath, JSON.stringify(state, null, 2), "utf8");
+}
+
+async function loadWithdrawn() {
+  try {
+    const raw = await fs.readFile(withdrawnPath, "utf8");
+    const parsed = JSON.parse(raw);
+    savedWithdrawn = new Set(
+      (Array.isArray(parsed) ? parsed : []).map((name) => String(name).toLowerCase()).filter(Boolean)
+    );
+  } catch {
+    savedWithdrawn = new Set();
+  }
+  for (const item of state.items) {
+    if (item.status === "withdrawn") savedWithdrawn.add(item.username.toLowerCase());
+  }
+  await saveWithdrawn();
+}
+
+async function saveWithdrawn() {
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(withdrawnPath, JSON.stringify([...savedWithdrawn].sort(), null, 2), "utf8");
+}
+
+function rememberWithdrawn(username) {
+  const key = String(username || "").toLowerCase();
+  if (!key || savedWithdrawn.has(key)) return false;
+  savedWithdrawn.add(key);
+  return true;
+}
+
+function applySavedWithdrawn(item) {
+  if (!savedWithdrawn.has(item.username.toLowerCase()) && item.status !== "withdrawn") return item;
+  return {
+    ...item,
+    status: "withdrawn",
+    selected: false,
+    detail: item.detail || "Kayıtlı. Bu hesaba tekrar istek atılmaz.",
+  };
 }
 
 async function loadState() {
@@ -205,13 +245,22 @@ async function runBatch(batch) {
       break;
     }
 
-    item.status = result.status;
-    item.detail = result.detail;
+    const alreadyGone = result.status === "skipped" && /bekleyen istek yok/i.test(result.detail || "");
+    if (result.status === "withdrawn" || alreadyGone) {
+      const added = rememberWithdrawn(item.username);
+      item.status = "withdrawn";
+      item.selected = false;
+      item.detail = "Kayıtlı. Bu hesaba tekrar istek atılmaz.";
+      if (added) await saveWithdrawn();
+    } else {
+      item.status = result.status;
+      item.detail = result.detail;
+    }
     item.updatedAt = new Date().toISOString();
     emit("item", item);
     emit("log", {
-      level: result.status === "withdrawn" ? "ok" : result.status === "error" ? "error" : "info",
-      message: `${item.username}: ${result.detail}`,
+      level: item.status === "withdrawn" ? "ok" : result.status === "error" ? "error" : "info",
+      message: `${item.username}: ${item.detail}`,
     });
     if (result.status === "error") await page.screenshot({ path: shotPath }).catch(() => {});
     await saveState();
@@ -292,9 +341,16 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     state.warnings = parsed.warnings;
     state.items = parsed.usernames.map((username) => {
       const old = previous.get(username.toLowerCase());
-      if (old && (old.status === "withdrawn" || old.status === "skipped")) {
-        return { ...old, username, selected: old.selected !== false };
+      if (savedWithdrawn.has(username.toLowerCase()) || old?.status === "withdrawn") {
+        return applySavedWithdrawn({
+          username,
+          status: "withdrawn",
+          detail: old?.detail || "",
+          selected: false,
+          updatedAt: old?.updatedAt || new Date().toISOString(),
+        });
       }
+      if (old && old.status === "skipped") return { ...old, username, selected: false };
       return {
         username,
         status: "pending",
@@ -314,22 +370,21 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 app.post("/api/selection", async (req, res) => {
   const { usernames, selected, all, pick, count } = req.body || {};
   if (all === true || all === false) {
-    for (const item of state.items) item.selected = Boolean(all);
+    for (const item of state.items) item.selected = all ? item.status !== "withdrawn" : false;
   } else if (pick === "first" || pick === "last") {
     const amount = Math.floor(Number(count));
     if (!Number.isFinite(amount) || amount < 1) {
       return res.status(400).json({ error: "Seçilecek adet 1 veya daha büyük olmalı." });
     }
-    const total = state.items.length;
-    const size = Math.min(total, amount);
-    const start = pick === "last" ? total - size : 0;
-    state.items.forEach((item, index) => {
-      item.selected = index >= start && index < start + size;
-    });
+    const eligible = state.items.filter((item) => item.status !== "withdrawn");
+    const size = Math.min(eligible.length, amount);
+    const chosen = new Set((pick === "last" ? eligible.slice(-size) : eligible.slice(0, size)).map((item) => item.username.toLowerCase()));
+    for (const item of state.items) item.selected = chosen.has(item.username.toLowerCase());
   } else if (Array.isArray(usernames)) {
     const set = new Set(usernames.map((name) => String(name).toLowerCase()));
     for (const item of state.items) {
-      if (set.has(item.username.toLowerCase())) item.selected = Boolean(selected);
+      if (!set.has(item.username.toLowerCase())) continue;
+      item.selected = item.status === "withdrawn" ? false : Boolean(selected);
     }
   }
   await saveState();
@@ -387,7 +442,10 @@ app.get("/api/debug/screenshot", async (_req, res) => {
 });
 
 const server = app.listen(port, "127.0.0.1", async () => {
-  await loadState();
+    await loadState();
+    await loadWithdrawn();
+    state.items = state.items.map(applySavedWithdrawn);
+    await saveState();
   const address = `http://127.0.0.1:${port}`;
   console.log(address);
   if (process.argv.includes("--open")) exec(`start "" "${address}"`);

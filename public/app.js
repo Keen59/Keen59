@@ -107,7 +107,13 @@ function renderList() {
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = Boolean(item.selected);
+    box.disabled = item.status === "withdrawn";
     box.addEventListener("change", async () => {
+      if (item.status === "withdrawn") {
+        item.selected = false;
+        box.checked = false;
+        return;
+      }
       item.selected = box.checked;
       await fetch("/api/selection", {
         method: "POST",

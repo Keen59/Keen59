@@ -14,8 +14,29 @@ const pickApplyButton = document.querySelector("#pick-apply");
 const openNextButton = document.querySelector("#open-next");
 const log = document.querySelector("#log");
 
+const STORAGE_KEY = "geri-cekilmis-hesaplar";
 let items = [];
-let nextIndex = 0;
+let saved = loadSaved();
+
+function loadSaved() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return new Set((Array.isArray(parsed) ? parsed : []).map((name) => String(name).toLowerCase()));
+  } catch {
+    return new Set();
+  }
+}
+
+function storeSaved() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...saved].sort()));
+}
+
+function remember(item) {
+  saved.add(item.username.toLowerCase());
+  storeSaved();
+  item.status = "saved";
+  item.selected = false;
+}
 
 function addLog(message, level = "info") {
   const item = document.createElement("li");
@@ -57,7 +78,13 @@ function renderList() {
     const box = document.createElement("input");
     box.type = "checkbox";
     box.checked = Boolean(item.selected);
+    box.disabled = item.status === "saved";
     box.addEventListener("change", () => {
+      if (item.status === "saved") {
+        item.selected = false;
+        box.checked = false;
+        return;
+      }
       item.selected = box.checked;
       renderMeta();
     });
@@ -68,13 +95,13 @@ function renderList() {
     link.rel = "noreferrer";
     link.textContent = item.username;
     link.addEventListener("click", () => {
-      item.status = "opened";
+      remember(item);
       renderList();
     });
 
     const meta = document.createElement("div");
-    meta.className = `meta ${item.status === "opened" ? "withdrawn" : ""}`;
-    meta.textContent = item.status === "opened" ? "Açıldı" : "Bekliyor";
+    meta.className = `meta ${item.status === "saved" ? "withdrawn" : ""}`;
+    meta.textContent = item.status === "saved" ? "Kayıtlı, tekrar istek yok" : "Bekliyor";
 
     row.append(indexLabel, box, link, meta);
     list.appendChild(row);
@@ -85,22 +112,28 @@ function renderList() {
 
 function renderMeta() {
   const selected = items.filter((item) => item.selected).length;
-  const opened = items.filter((item) => item.status === "opened").length;
-  counts.textContent = items.length ? `${items.length} profil · ${selected} seçili · ${opened} açıldı` : "";
+  const kept = items.filter((item) => item.status === "saved").length;
+  counts.textContent = items.length ? `${items.length} profil · ${selected} seçili · ${kept} kayıtlı` : "";
 }
 
 function applyParsed(filename, parsed) {
-  items = parsed.usernames.map((username) => ({
-    username,
-    selected: parsed.trusted,
-    status: "pending",
-  }));
-  nextIndex = 0;
+  items = parsed.usernames.map((username) => {
+    const known = saved.has(username.toLowerCase());
+    return {
+      username,
+      selected: parsed.trusted && !known,
+      status: known ? "saved" : "pending",
+    };
+  });
   source.textContent = filename ? `Yüklenen: ${filename}` : "";
   renderWarnings(parsed.warnings);
   dropLabel.textContent = filename || "Dosyayı buraya bırak veya seç";
   renderList();
-  addLog(items.length ? `${items.length} profil bulundu.` : parsed.warnings[0] || "Profil bulunamadı.", items.length ? "ok" : "error");
+  const kept = items.filter((item) => item.status === "saved").length;
+  addLog(
+    items.length ? `${items.length} profil bulundu.${kept ? ` ${kept} kayıtlı hesap seçilmedi.` : ""}` : parsed.warnings[0] || "Profil bulunamadı.",
+    items.length ? "ok" : "error"
+  );
 }
 
 async function upload(file) {
@@ -111,7 +144,7 @@ async function upload(file) {
 }
 
 function setAll(selected) {
-  for (const item of items) item.selected = selected;
+  for (const item of items) item.selected = selected && item.status !== "saved";
   renderList();
 }
 
@@ -122,27 +155,23 @@ function pickRange() {
     addLog("Seçilecek adet 1 veya daha büyük olmalı.", "error");
     return;
   }
-  const size = Math.min(items.length, count);
-  const start = pick === "last" ? items.length - size : 0;
-  items.forEach((item, index) => {
-    item.selected = index >= start && index < start + size;
-  });
-  nextIndex = 0;
+  const eligible = items.filter((item) => item.status !== "saved");
+  const size = Math.min(eligible.length, count);
+  const chosen = new Set((pick === "last" ? eligible.slice(-size) : eligible.slice(0, size)).map((item) => item.username.toLowerCase()));
+  for (const item of items) item.selected = chosen.has(item.username.toLowerCase());
   renderList();
 }
 
 function openNext() {
-  const selected = items.filter((item) => item.selected);
+  const selected = items.filter((item) => item.selected && item.status !== "saved");
   if (!selected.length) {
-    addLog("Önce profil seç.", "error");
+    addLog("Açılacak seçili profil yok.", "error");
     return;
   }
-  if (nextIndex >= selected.length) nextIndex = 0;
-  const item = selected[nextIndex];
-  nextIndex += 1;
-  item.status = "opened";
+  const item = selected[0];
   window.open(`https://www.instagram.com/${encodeURIComponent(item.username)}/`, "_blank", "noopener");
-  addLog(`${item.username} açıldı (${nextIndex}/${selected.length}).`);
+  remember(item);
+  addLog(`${item.username} kaydedildi. Buna tekrar istek atılmaz. Kalan seçili: ${selected.length - 1}.`);
   renderList();
 }
 
