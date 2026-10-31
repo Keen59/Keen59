@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import AdmZip from "adm-zip";
+import { followerLimit, profileFromInput, usernamesFromHrefs } from "../lib/followers.js";
 import { fold, kindOf } from "../lib/withdraw.js";
 import { parseBuffer } from "../lib/parse.js";
 
@@ -79,5 +80,15 @@ assert.equal(kindOf("Takiptesin"), "following");
 assert.equal(kindOf("Takibi Bırak"), "unfollow");
 assert.equal(kindOf("Sen de Takip Et"), "follow");
 assert.equal(fold("İstek Gönderildi"), "istek gönderildi");
+
+assert.equal(profileFromInput("@alice"), "alice");
+assert.equal(profileFromInput("https://www.instagram.com/bob.smith/"), "bob.smith");
+assert.equal(profileFromInput("https://www.instagram.com/explore/"), null);
+assert.deepEqual(
+  usernamesFromHrefs(["/alice/", "/bob.smith/", "/alice/", "/explore/", "/reel/abc/"], "alice"),
+  ["bob.smith"]
+);
+assert.equal(followerLimit(0), 200);
+assert.equal(followerLimit(9000), 5000);
 
 console.log("parse tests passed");

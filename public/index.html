@@ -18,8 +18,30 @@
         </p>
       </header>
 
+      <section class="card" id="phone-gate" hidden>
+        <h2>Bilgisayar kodu</h2>
+        <p class="quiet">
+          Kodu, bilgisayarda açık olan sayfadan yaz. İstekleri geri çeken pencere bilgisayarda kalır.
+        </p>
+        <form id="phone-form" class="row actions">
+          <input id="phone-input" inputmode="numeric" autocomplete="one-time-code" placeholder="6 haneli kod" />
+          <button type="submit">Gir</button>
+        </form>
+        <p id="phone-error" class="warning" hidden></p>
+      </section>
+
       <section class="layout">
         <div class="stack">
+          <section class="card" id="phone-card" hidden>
+            <h2>Telefondan başlat</h2>
+            <p class="quiet">
+              Bilgisayar açık kalsın ve aynı Wi-Fi’de olsun. Telefon bu adresi açar, kodu yazar ve
+              buradaki düğmelerle turu başlatır. Tıklama bu bilgisayardaki Instagram penceresinde olur.
+            </p>
+            <p id="phone-urls" class="phone-urls"></p>
+            <p class="quiet">Kod: <strong id="phone-code"></strong></p>
+          </section>
+
           <section class="card">
             <h2>1. Dosyayı yükle</h2>
             <p class="quiet">
@@ -44,6 +66,31 @@
               <button id="open-browser" type="button">Tarayıcıyı aç</button>
               <span id="browser-state" class="status">Kapalı</span>
             </div>
+          </section>
+
+          <section class="card">
+            <h2>Takipçi listesi</h2>
+            <p class="quiet">
+              Profil adını veya bağlantısını yaz. Açık oturum o hesabın takipçi penceresini kaydırır
+              ve kullanıcı adlarını listeye yazar. Takip et düğmesine basılmaz.
+            </p>
+            <div class="fields followers-fields">
+              <label>
+                Profil
+                <input id="followers-profile" type="text" placeholder="kullanici veya bağlantı" autocomplete="off" />
+              </label>
+              <label>
+                En fazla
+                <input id="followers-limit" type="number" min="1" max="5000" value="200" />
+              </label>
+            </div>
+            <div class="row actions">
+              <button id="followers-start" type="button">Takipçileri çıkar</button>
+              <button id="followers-copy" type="button" class="secondary" disabled>Kopyala</button>
+              <button id="followers-download" type="button" class="secondary" disabled>İndir</button>
+            </div>
+            <p id="followers-state" class="quiet"></p>
+            <textarea id="followers-list" readonly rows="8" placeholder="Liste burada görünecek"></textarea>
           </section>
 
           <section class="card">

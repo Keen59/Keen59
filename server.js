@@ -1,11 +1,14 @@
 import { exec } from "node:child_process";
+import { randomInt } from "node:crypto";
 import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import multer from "multer";
 import { chromium } from "playwright";
+import { collectFollowers, profileFromInput } from "./lib/followers.js";
 import { parseBuffer } from "./lib/parse.js";
 import { withdrawRequest } from "./lib/withdraw.js";
 
@@ -14,8 +17,10 @@ const dataDir = path.join(rootDir, "data");
 const profileDir = path.join(dataDir, "browser-profile");
 const statePath = path.join(dataDir, "state.json");
 const withdrawnPath = path.join(dataDir, "withdrawn.json");
+const phoneCodePath = path.join(dataDir, "phone-code.txt");
 const shotPath = path.join(dataDir, "last-screen.png");
 const port = 3847;
+let phoneCode = "";
 
 const MIN_DELAY = 8;
 const upload = multer({
@@ -34,6 +39,7 @@ let state = {
 let context = null;
 let opening = null;
 let running = false;
+let followersRunning = false;
 let stopRequested = false;
 const clients = new Set();
 
@@ -282,9 +288,75 @@ async function runBatch(batch) {
   emit("log", { level: "info", message: "Tur bitti." });
 }
 
+function lanUrls() {
+  const urls = [];
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const entry of entries || []) {
+      const v4 = entry.family === "IPv4" || entry.family === 4;
+      if (!v4 || entry.internal || String(entry.address).startsWith("169.254.")) continue;
+      urls.push(`http://${entry.address}:${port}`);
+    }
+  }
+  return urls;
+}
+
+function clientIp(req) {
+  return String(req.socket.remoteAddress || "").replace(/^::ffff:/, "");
+}
+
+function isLocal(req) {
+  const ip = clientIp(req);
+  return ip === "127.0.0.1" || ip === "::1";
+}
+
+function phoneCookie(req) {
+  const raw = req.headers.cookie || "";
+  for (const part of raw.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name === "ig_phone") return decodeURIComponent(rest.join("="));
+  }
+  return "";
+}
+
+async function loadPhoneCode() {
+  try {
+    const raw = (await fs.readFile(phoneCodePath, "utf8")).trim();
+    if (/^\d{6}$/.test(raw)) {
+      phoneCode = raw;
+      return;
+    }
+  } catch {
+    // A new code is written below.
+  }
+  phoneCode = String(randomInt(0, 1000000)).padStart(6, "0");
+  await fs.mkdir(dataDir, { recursive: true });
+  await fs.writeFile(phoneCodePath, phoneCode, "utf8");
+}
+
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(rootDir, "public")));
+app.use((req, res, next) => {
+  if (!req.path.startsWith("/api/") || req.path === "/api/phone") return next();
+  if (isLocal(req) || phoneCookie(req) === phoneCode) return next();
+  res.status(401).json({ error: "Telefonda önce bilgisayardaki kodu gir." });
+});
+
+app.get("/api/phone", (req, res) => {
+  if (isLocal(req)) return res.json({ locked: false, local: true, urls: lanUrls(), code: phoneCode });
+  res.json({ locked: phoneCookie(req) !== phoneCode, local: false });
+});
+
+app.post("/api/phone", (req, res) => {
+  if (String(req.body?.code || "").trim() !== phoneCode) {
+    return res.status(401).json({ error: "Kod yanlış." });
+  }
+  res.setHeader(
+    "Set-Cookie",
+    `ig_phone=${encodeURIComponent(phoneCode)}; HttpOnly; Path=/; SameSite=Lax; Max-Age=2592000`
+  );
+  res.json({ ok: true });
+});
 
 app.get("/api/state", (_req, res) => {
   res.json(publicState());
@@ -391,8 +463,53 @@ app.post("/api/selection", async (req, res) => {
   res.json(publicState());
 });
 
+app.post("/api/followers", async (req, res) => {
+  if (running || followersRunning) return res.status(409).json({ error: "Zaten çalışıyor" });
+  if (!context) return res.status(400).json({ error: "Önce tarayıcıyı açıp Instagram'a giriş yap." });
+  const connected = await sessionConnected().catch(() => false);
+  if (!connected) return res.status(400).json({ error: "Instagram girişi görünmüyor. Açık pencereden giriş yap." });
+
+  const username = profileFromInput(req.body?.username);
+  if (!username) return res.status(400).json({ error: "Geçerli bir profil adı veya bağlantısı yaz." });
+  const limit = Math.floor(Number(req.body?.limit));
+  if (!Number.isFinite(limit) || limit < 1) {
+    return res.status(400).json({ error: "Adet 1 veya daha büyük olmalı." });
+  }
+
+  followersRunning = true;
+  stopRequested = false;
+  res.json({ started: true, username });
+  const page = context.pages()[0] || (await context.newPage());
+  try {
+    const result = await collectFollowers(page, username, {
+      limit,
+      shouldStop: () => stopRequested,
+      onProgress: (names) => emit("followers", { username, count: names.length, done: false }),
+    });
+    emit("followers", {
+      username,
+      count: result.usernames.length,
+      done: true,
+      status: result.status,
+      detail: result.detail,
+      usernames: result.usernames,
+    });
+    emit("log", {
+      level: result.status === "ok" ? "ok" : result.status === "blocked" ? "error" : "info",
+      message: `${username}: ${result.detail}`,
+    });
+  } catch (error) {
+    const message = String(error?.message || error).slice(0, 180);
+    emit("followers", { username, count: 0, done: true, status: "error", detail: message, usernames: [] });
+    emit("log", { level: "error", message });
+  } finally {
+    followersRunning = false;
+    stopRequested = false;
+  }
+});
+
 app.post("/api/run", async (req, res) => {
-  if (running) return res.status(409).json({ error: "Zaten çalışıyor" });
+  if (running || followersRunning) return res.status(409).json({ error: "Zaten çalışıyor" });
   if (!context) return res.status(400).json({ error: "Önce tarayıcıyı açıp Instagram'a giriş yap." });
   const connected = await sessionConnected().catch(() => false);
   if (!connected) return res.status(400).json({ error: "Instagram girişi görünmüyor. Açık pencereden giriş yap." });
@@ -441,13 +558,15 @@ app.get("/api/debug/screenshot", async (_req, res) => {
   }
 });
 
-const server = app.listen(port, "127.0.0.1", async () => {
+await loadPhoneCode();
+const server = app.listen(port, "0.0.0.0", async () => {
     await loadState();
     await loadWithdrawn();
     state.items = state.items.map(applySavedWithdrawn);
     await saveState();
   const address = `http://127.0.0.1:${port}`;
   console.log(address);
+  for (const url of lanUrls()) console.log(`phone ${url}`);
   if (process.argv.includes("--open")) exec(`start "" "${address}"`);
 });
 

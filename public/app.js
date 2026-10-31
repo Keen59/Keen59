@@ -21,6 +21,13 @@ const startButton = document.querySelector("#start");
 const stopButton = document.querySelector("#stop");
 const tryButton = document.querySelector("#try-one");
 const openButton = document.querySelector("#open-browser");
+const followersProfile = document.querySelector("#followers-profile");
+const followersLimit = document.querySelector("#followers-limit");
+const followersStart = document.querySelector("#followers-start");
+const followersCopy = document.querySelector("#followers-copy");
+const followersDownload = document.querySelector("#followers-download");
+const followersState = document.querySelector("#followers-state");
+const followersList = document.querySelector("#followers-list");
 
 let items = [];
 let running = false;
@@ -271,6 +278,43 @@ stopButton.addEventListener("click", async () => {
   addLog("Durdurma istendi. Şu anki profilden sonra durur.");
 });
 
+followersStart.addEventListener("click", async () => {
+  followersStart.disabled = true;
+  stopButton.disabled = false;
+  followersCopy.disabled = true;
+  followersDownload.disabled = true;
+  followersState.textContent = "Takipçi penceresi açılıyor...";
+  const response = await fetch("/api/followers", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: followersProfile.value,
+      limit: Number(followersLimit.value),
+    }),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    followersStart.disabled = false;
+    stopButton.disabled = running ? false : true;
+    followersState.textContent = data.error || "Liste alınamadı";
+    addLog(data.error || "Liste alınamadı", "error");
+  }
+});
+
+followersCopy.addEventListener("click", async () => {
+  await navigator.clipboard.writeText(followersList.value);
+  followersState.textContent = "Liste kopyalandı.";
+});
+
+followersDownload.addEventListener("click", () => {
+  const blob = new Blob([followersList.value], { type: "text/plain;charset=utf-8" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${followersDownload.dataset.username || "takipciler"}-takipciler.txt`;
+  link.click();
+  URL.revokeObjectURL(link.href);
+});
+
 openButton.addEventListener("click", async () => {
   openButton.disabled = true;
   setBrowser("login");
@@ -285,23 +329,46 @@ openButton.addEventListener("click", async () => {
   setBrowser(data.state);
 });
 
-const events = new EventSource("/api/events");
-events.addEventListener("state", (event) => applyState(JSON.parse(event.data)));
-events.addEventListener("item", (event) => patchItem(JSON.parse(event.data)));
-events.addEventListener("log", (event) => {
-  const entry = JSON.parse(event.data);
-  addLog(entry.message, entry.level);
-});
-events.addEventListener("run", (event) => {
-  const entry = JSON.parse(event.data);
-  running = entry.running;
-  startButton.disabled = running;
-  tryButton.disabled = running;
-  stopButton.disabled = !running;
-  runState.textContent = entry.running
-    ? `${entry.index}/${entry.total} · ${entry.username}`
-    : "Hazır";
-});
+function connect() {
+  const events = new EventSource("/api/events");
+  events.addEventListener("state", (event) => applyState(JSON.parse(event.data)));
+  events.addEventListener("item", (event) => patchItem(JSON.parse(event.data)));
+  events.addEventListener("log", (event) => {
+    const entry = JSON.parse(event.data);
+    addLog(entry.message, entry.level);
+  });
+  events.addEventListener("run", (event) => {
+    const entry = JSON.parse(event.data);
+    running = entry.running;
+    startButton.disabled = running;
+    tryButton.disabled = running;
+    stopButton.disabled = !running;
+    followersStart.disabled = running;
+    runState.textContent = entry.running
+      ? `${entry.index}/${entry.total} · ${entry.username}`
+      : "Hazır";
+  });
+  events.addEventListener("followers", (event) => {
+    const entry = JSON.parse(event.data);
+    if (!entry.done) {
+      followersState.textContent = `${entry.count} takipçi okundu...`;
+      return;
+    }
+    const names = Array.isArray(entry.usernames) ? entry.usernames : [];
+    followersList.value = names.join("\n");
+    followersState.textContent = entry.detail || `${names.length} takipçi`;
+    const hasList = names.length > 0;
+    followersCopy.disabled = !hasList;
+    followersDownload.disabled = !hasList;
+    followersStart.disabled = false;
+    stopButton.disabled = true;
+    followersDownload.dataset.username = entry.username || "takipciler";
+  });
+
+  fetch("/api/state").then((response) => response.json()).then(applyState);
+  pollBrowser();
+  setInterval(pollBrowser, 3000);
+}
 
 async function pollBrowser() {
   const response = await fetch("/api/browser/status");
@@ -309,6 +376,50 @@ async function pollBrowser() {
   setBrowser(data.state);
 }
 
-fetch("/api/state").then((response) => response.json()).then(applyState);
-pollBrowser();
-setInterval(pollBrowser, 3000);
+function showPhoneCard(access) {
+  if (!access.local || !access.urls?.length) return;
+  const card = document.querySelector("#phone-card");
+  card.hidden = false;
+  document.querySelector("#phone-code").textContent = access.code;
+  const box = document.querySelector("#phone-urls");
+  box.replaceChildren();
+  for (const url of access.urls) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.textContent = url;
+    box.append(link);
+  }
+}
+
+function showPhoneGate() {
+  document.querySelector(".layout").hidden = true;
+  const gate = document.querySelector("#phone-gate");
+  gate.hidden = false;
+  document.querySelector("#phone-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const response = await fetch("/api/phone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: document.querySelector("#phone-input").value }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const error = document.querySelector("#phone-error");
+      error.hidden = false;
+      error.textContent = data.error || "Kod yanlış.";
+      return;
+    }
+    location.reload();
+  });
+}
+
+fetch("/api/phone")
+  .then((response) => response.json())
+  .then((access) => {
+    if (access.locked) {
+      showPhoneGate();
+      return;
+    }
+    showPhoneCard(access);
+    connect();
+  });

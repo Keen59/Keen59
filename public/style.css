@@ -68,6 +68,10 @@ h2 { margin: 0; font-size: 1.15rem; }
 
 .lede { margin: 0; font-size: 1.02rem; }
 
+.phone-urls { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.phone-urls a { color: #0f766e; font-weight: 700; word-break: break-all; }
+#phone-code { letter-spacing: 0.18em; font-size: 1.4rem; }
+
 .layout {
   display: grid;
   grid-template-columns: minmax(280px, 380px) minmax(0, 1fr);
@@ -122,7 +126,9 @@ h2 { margin: 0; font-size: 1.15rem; }
 .fields input,
 #search,
 #pick-count,
-#pick-side {
+#pick-side,
+#followers-profile,
+#followers-list {
   width: 100%;
   border: 1px solid var(--line-strong);
   background: #fff;
@@ -133,10 +139,23 @@ h2 { margin: 0; font-size: 1.15rem; }
 
 #search { flex: 1 1 180px; width: auto; min-width: 160px; font-weight: 400; }
 
+.followers-fields { grid-template-columns: minmax(0, 1fr) 120px; }
+
+#followers-list {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
 .fields input:focus,
 #search:focus,
 #pick-count:focus,
 #pick-side:focus,
+#followers-profile:focus,
+#followers-list:focus,
 button:focus-visible {
   outline: 2px solid #0f766e;
   outline-offset: 2px;
